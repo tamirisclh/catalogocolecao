@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arquivo da coleção</title>
+<meta name="theme-color" content="#0B0E14">
+<meta name="description" content="Catálogo pessoal da coleção — Funko Pops, réplicas, livros, jogos e figures.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0B0E14;
+    --surface: #131826;
+    --surface-2: #1B2232;
+    --border: #262F42;
+    --border-strong: #3A465F;
+    --text: #EDEFF5;
+    --text-muted: #8A93A6;
+    --text-faint: #5B6478;
+    --cyan: #4DF0C8;
+    --cyan-dim: #1D5A4C;
+    --magenta: #FF3E88;
+    --magenta-dim: #5A1F3A;
+    --amber: #F5C34C;
+    --amber-dim: #4A3A14;
+    --radius: 10px;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 24px 80px;}
+
+  /* header */
+  .top{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:28px;flex-wrap:wrap;}
+  .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--cyan);margin:0 0 6px;}
+  h1{font-family:var(--font-display);font-weight:700;font-size:30px;margin:0;letter-spacing:-0.01em;}
+  .sub{color:var(--text-muted);font-size:13.5px;margin:6px 0 0;max-width:480px;line-height:1.5;}
+
+  .stats{display:flex;gap:10px;flex-wrap:wrap;}
+  .stat{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:10px 16px;
+    min-width:118px;
+  }
+  .stat .n{font-family:var(--font-mono);font-size:20px;font-weight:500;color:var(--text);}
+  .stat .l{font-size:11px;color:var(--text-muted);margin-top:2px;}
+  .stat.warn .n{color:var(--amber);}
+
+  /* toolbar */
+  .toolbar{display:flex;gap:10px;align-items:center;margin:28px 0 18px;flex-wrap:wrap;}
+  input, select, textarea{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:8px;
+    padding:9px 12px;
+    font-family:var(--font-body);
+    font-size:13.5px;
+    outline:none;
+  }
+  input::placeholder, textarea::placeholder{color:var(--text-faint);}
+  input:focus, select:focus, textarea:focus{border-color:var(--cyan);}
+  #search{flex:1;min-width:180px;}
+
+  .btn{
+    font-family:var(--font-body);
+    font-weight:500;
+    font-size:13.5px;
+    border-radius:8px;
+    padding:9px 16px;
+    cursor:pointer;
+    border:1px solid var(--border-strong);
+    background:var(--surface-2);
+    color:var(--text);
+    white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--text-muted);}
+  .btn.primary{background:var(--cyan);color:#04231C;border-color:var(--cyan);font-weight:600;}
+  .btn.primary:hover{opacity:0.9;}
+  .btn.danger{background:transparent;border-color:var(--magenta-dim);color:var(--magenta);}
+  .btn.danger:hover{background:var(--magenta-dim);}
+
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;}
+  .chip{
+    font-family:var(--font-mono);
+    font-size:12px;
+    padding:6px 13px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    color:var(--text-muted);
+    cursor:pointer;
+    background:transparent;
+  }
+  .chip.active{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan);}
+
+  /* grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    overflow:hidden;
+    cursor:pointer;
+    position:relative;
+    transition:border-color 0.15s;
+  }
+  .card:hover{border-color:var(--border-strong);}
+  .card .photo{
+    width:100%;aspect-ratio:1/1;background:var(--surface-2);
+    display:flex;align-items:center;justify-content:center;
+    background-size:cover;background-position:center;
+    color:var(--text-faint);font-size:11px;font-family:var(--font-mono);
+  }
+  .tag-num{
+    position:absolute;top:8px;left:8px;
+    font-family:var(--font-mono);font-size:10px;
+    background:rgba(11,14,20,0.75);color:var(--cyan);
+    padding:2px 7px;border-radius:4px;letter-spacing:0.05em;
+  }
+  .star{
+    position:absolute;top:8px;right:8px;font-size:16px;color:var(--amber);
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+  }
+  .incomplete-dot{
+    position:absolute;bottom:8px;right:8px;width:8px;height:8px;border-radius:50%;
+    background:var(--amber);border:2px solid var(--surface);
+  }
+  .card .body{padding:11px 12px 13px;}
+  .card .name{font-size:14px;font-weight:600;margin:0 0 3px;line-height:1.3;}
+  .card .cat{font-size:11.5px;color:var(--text-muted);margin:0 0 8px;}
+  .card .value{font-family:var(--font-mono);font-size:13px;color:var(--cyan);}
+
+  .empty{
+    text-align:center;padding:70px 20px;color:var(--text-muted);
+    border:1px dashed var(--border);border-radius:12px;
+  }
+  .empty h3{font-family:var(--font-display);color:var(--text);font-weight:500;margin-bottom:6px;}
+
+  /* modal */
+  .overlay{
+    position:fixed;inset:0;background:rgba(4,5,8,0.7);
+    display:none;align-items:flex-start;justify-content:center;
+    padding:40px 16px;overflow-y:auto;z-index:50;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:var(--surface);border:1px solid var(--border-strong);
+    border-radius:14px;width:100%;max-width:560px;padding:26px;
+    animation:rise 0.15s ease;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .modal h2{font-family:var(--font-display);font-size:19px;margin:0 0 18px;font-weight:600;}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:5px;}
+  .field input, .field select, .field textarea{width:100%;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .photo-input{
+    border:1px dashed var(--border-strong);border-radius:8px;
+    padding:14px;text-align:center;cursor:pointer;font-size:12.5px;color:var(--text-muted);
+    background:var(--surface-2);
+  }
+  .photo-preview{width:100%;max-height:180px;object-fit:contain;border-radius:8px;margin-bottom:8px;display:none;}
+  .modal-actions{display:flex;justify-content:space-between;margin-top:20px;gap:10px;}
+  .modal-actions .right{display:flex;gap:8px;}
+  .check-row{display:flex;align-items:center;gap:8px;margin-bottom:13px;}
+  .check-row input{width:auto;}
+  .check-row label{font-size:13px;color:var(--text);}
+
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+    background:var(--surface-2);border:1px solid var(--border-strong);
+    padding:10px 18px;border-radius:8px;font-size:13px;
+    opacity:0;pointer-events:none;transition:opacity 0.2s;z-index:60;
+  }
+  .toast.show{opacity:1;}
+
+  @media (max-width:520px){
+    .row2{grid-template-columns:1fr;}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+  }
+
+  /* login gate */
+  #loginGate{
+    position:fixed;inset:0;background:var(--bg);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:18px;z-index:100;text-align:center;padding:24px;
+  }
+  #loginGate h1{font-family:var(--font-display);font-size:24px;margin:0;}
+  #loginGate p{color:var(--text-muted);font-size:13.5px;max-width:320px;margin:0;}
+  #googleBtn{
+    display:flex;align-items:center;gap:10px;
+    background:#fff;color:#1f1f1f;border:none;border-radius:8px;
+    padding:11px 20px;font-family:var(--font-body);font-weight:600;font-size:14px;
+    cursor:pointer;
+  }
+  #googleBtn:hover{opacity:0.92;}
+  #loginError{color:var(--magenta);font-size:12.5px;display:none;}
+  .or-divider{
+    color:var(--text-faint);font-size:11.5px;font-family:var(--font-mono);
+    text-transform:uppercase;letter-spacing:0.08em;margin-top:4px;
+  }
+  #emailForm{display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px;}
+  #emailForm .field{margin:0;}
+  .email-actions{display:flex;gap:8px;}
+  .email-actions .btn{flex:1;}
+  #forgotPass{
+    color:var(--text-muted);font-size:12px;cursor:pointer;margin:2px 0 0;
+    text-decoration:underline;text-underline-offset:2px;
+  }
+  #forgotPass:hover{color:var(--cyan);}
+  .signout-wrap{position:fixed;top:14px;right:16px;z-index:40;}
+  #signOutBtn{
+    font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
+    background:var(--surface);border:1px solid var(--border);border-radius:6px;
+    padding:6px 10px;cursor:pointer;
+  }
+  #syncStatus{
+    position:fixed;top:14px;left:16px;z-index:40;
+    font-family:var(--font-mono);font-size:11px;color:var(--text-faint);
+  }
+  body.gated .wrap{display:none;}
+</style>
+</head>
+<body class="gated">
+<div id="loginGate">
+  <h1>Arquivo da coleção</h1>
+  <p>Entre para acessar seu catálogo, sincronizado na nuvem.</p>
+  <button id="googleBtn">
+    <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.86 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+    Entrar com Google
+  </button>
+
+  <div class="or-divider">ou com e-mail</div>
+
+  <div id="emailForm">
+    <div class="field"><input id="loginEmail" type="email" placeholder="seu@email.com"></div>
+    <div class="field"><input id="loginPass" type="password" placeholder="Senha (mín. 6 caracteres)"></div>
+    <div class="email-actions">
+      <button class="btn primary" id="emailSignInBtn">Entrar</button>
+      <button class="btn" id="emailSignUpBtn">Criar conta</button>
+    </div>
+    <p id="forgotPass">Esqueci minha senha</p>
+  </div>
+
+  <p id="loginError">Não foi possível entrar. Tenta de novo.</p>
+</div>
+<div class="signout-wrap" style="display:none" id="signOutWrap">
+  <button id="signOutBtn">Sair</button>
+</div>
+<div id="syncStatus" style="display:none"></div>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <p class="eyebrow">Catálogo pessoal</p>
+      <h1>Arquivo da coleção</h1>
+      <p class="sub">Registro de cada peça com valor, procedência e condição — pronto para consulta em caso de sinistro.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="statTotal">0</div><div class="l">itens</div></div>
+      <div class="stat"><div class="n" id="statValue">R$ 0</div><div class="l">valor estimado</div></div>
+      <div class="stat warn"><div class="n" id="statIncomplete">0</div><div class="l">sem foto/valor</div></div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <input id="search" type="text" placeholder="Buscar por nome...">
+    <button class="btn" id="exportBtn">Exportar CSV</button>
+    <button class="btn primary" id="addBtn">+ Novo item</button>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div id="gridWrap"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Novo item</h2>
+    <input type="hidden" id="editId">
+
+    <div class="field">
+      <label>Foto</label>
+      <img class="photo-preview" id="photoPreview">
+      <label class="photo-input" id="photoLabel">Clique para escolher uma foto (será redimensionada automaticamente)
+        <input type="file" id="photoInput" accept="image/*" style="display:none">
+      </label>
+    </div>
+
+    <div class="field">
+      <label>Nome do item</label>
+      <input id="fName" placeholder="Ex: Katana Kill Bill">
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Categoria</label>
+        <select id="fCat">
+          <option>Funko Pop</option>
+          <option>Réplica</option>
+          <option>Livro</option>
+          <option>Jogo</option>
+          <option>Carrinho</option>
+          <option>Boneco / Figure</option>
+          <option>Outro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Condição</label>
+        <select id="fCond">
+          <option>Novo / lacrado</option>
+          <option>Excelente</option>
+          <option>Bom</option>
+          <option>Com marcas de uso</option>
+          <option>Danificado</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Valor estimado (R$)</label>
+        <input id="fValue" type="number" min="0" step="0.01" placeholder="0,00">
+      </div>
+      <div class="field">
+        <label>Data de aquisição</label>
+        <input id="fDate" type="date">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Local de compra / procedência</label>
+      <input id="fPlace" placeholder="Ex: loja oficial, importado, feira...">
+    </div>
+
+    <div class="field">
+      <label>Edição / número de série (opcional)</label>
+      <input id="fSerial" placeholder="Ex: 1234/5000">
+    </div>
+
+    <div class="check-row">
+      <input type="checkbox" id="fReceipt">
+      <label for="fReceipt">Tenho nota fiscal ou comprovante guardado</label>
+    </div>
+
+    <div class="check-row">
+      <input type="checkbox" id="fWish">
+      <label for="fWish">Está na wishlist (ainda não comprei)</label>
+    </div>
+
+    <div class="field">
+      <label>Observações</label>
+      <textarea id="fNotes" rows="2" placeholder="Detalhes extras, defeitos, embalagem original..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn danger" id="deleteBtn" style="display:none">Excluir</button>
+      <div class="right">
+        <button class="btn" id="cancelBtn">Cancelar</button>
+        <button class="btn primary" id="saveBtn">Salvar item</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var items = [];
+let activeCat = "Todos";
+let query = "";
+let currentPhotoData = null;
+const CATS = ["Funko Pop","Réplica","Livro","Jogo","Carrinho","Boneco / Figure","Outro"];
+
+const catNum = id => "N.º " + String(id).padStart(3,'0');
+
+function money(v){
+  return "R$ " + Number(v||0).toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0});
+}
+
+async function loadItems(){
+  // Substituído pela assinatura em tempo real do Firestore (ver initFirebaseSync)
+}
+
+async function saveItems(){
+  // Substituído: gravações agora são feitas item a item direto no Firestore
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+function renderChips(){
+  const cats = ["Todos", ...CATS];
+  document.getElementById('chips').innerHTML = cats.map(c=>{
+    const active = c===activeCat ? 'active':'';
+    return `<button class="chip ${active}" data-cat="${c}">${c}</button>`;
+  }).join('');
+  document.querySelectorAll('.chip').forEach(el=>{
+    el.addEventListener('click', ()=>{ activeCat = el.dataset.cat; render(); });
+  });
+}
+
+function renderStats(){
+  const total = items.length;
+  const value = items.filter(i=>!i.wish).reduce((s,i)=>s+(Number(i.value)||0),0);
+  const incomplete = items.filter(i=> !i.wish && (!i.photo || !i.value)).length;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statValue').textContent = money(value);
+  document.getElementById('statIncomplete').textContent = incomplete;
+}
+
+function renderGrid(){
+  const filtered = items.filter(i=>
+    (activeCat==="Todos" || i.cat===activeCat) &&
+    i.name.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const wrap = document.getElementById('gridWrap');
+
+  if(items.length === 0){
+    wrap.innerHTML = `<div class="empty"><h3>Sua coleção está vazia por aqui</h3><p>Cadastre o primeiro item para começar o arquivo.</p></div>`;
+    return;
+  }
+  if(filtered.length === 0){
+    wrap.innerHTML = `<div class="empty"><h3>Nada encontrado</h3><p>Tente outro termo de busca ou categoria.</p></div>`;
+    return;
+  }
+
+  wrap.innerHTML = `<div class="grid">` + filtered.map(i=>{
+    const bg = i.photo ? `background-image:url(${i.photo})` : '';
+    const photoContent = i.photo ? '' : 'sem foto';
+    const incomplete = !i.wish && (!i.photo || !i.value);
+    return `<div class="card" data-id="${i.id}">
+      <div class="photo" style="${bg}">${photoContent}</div>
+      <span class="tag-num">${catNum(i.id)}</span>
+      ${i.wish ? '<span class="star">★</span>' : ''}
+      ${incomplete ? '<span class="incomplete-dot" title="Documentação incompleta"></span>' : ''}
+      <div class="body">
+        <p class="name">${i.name}</p>
+        <p class="cat">${i.cat}</p>
+        <p class="value">${i.wish ? 'wishlist' : money(i.value)}</p>
+      </div>
+    </div>`;
+  }).join('') + `</div>`;
+
+  document.querySelectorAll('.card').forEach(el=>{
+    el.addEventListener('click', ()=> openModal(el.dataset.id));
+  });
+}
+
+function render(){
+  renderChips();
+  renderStats();
+  renderGrid();
+}
+
+function resizeImage(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 500;
+        const scale = Math.min(1, maxW / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('photoLabel').addEventListener('click', ()=> document.getElementById('photoInput').click());
+document.getElementById('photoInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const dataUrl = await resizeImage(file);
+    currentPhotoData = dataUrl;
+    const prev = document.getElementById('photoPreview');
+    prev.src = dataUrl;
+    prev.style.display = 'block';
+  }catch(err){
+    showToast("Não foi possível processar essa imagem.");
+  }
+});
+
+function openModal(id){
+  const overlay = document.getElementById('overlay');
+  overlay.classList.add('show');
+  const item = id ? items.find(i=>String(i.id)===String(id)) : null;
+
+  document.getElementById('modalTitle').textContent = item ? "Editar item" : "Novo item";
+  document.getElementById('editId').value = item ? item.id : '';
+  document.getElementById('fName').value = item ? item.name : '';
+  document.getElementById('fCat').value = item ? item.cat : CATS[0];
+  document.getElementById('fCond').value = item ? item.cond : "Novo / lacrado";
+  document.getElementById('fValue').value = item ? item.value : '';
+  document.getElementById('fDate').value = item ? item.date : '';
+  document.getElementById('fPlace').value = item ? item.place : '';
+  document.getElementById('fSerial').value = item ? item.serial : '';
+  document.getElementById('fReceipt').checked = item ? !!item.receipt : false;
+  document.getElementById('fWish').checked = item ? !!item.wish : false;
+  document.getElementById('fNotes').value = item ? item.notes : '';
+
+  currentPhotoData = item ? item.photo : null;
+  const prev = document.getElementById('photoPreview');
+  if(currentPhotoData){ prev.src = currentPhotoData; prev.style.display = 'block'; }
+  else { prev.style.display = 'none'; prev.src=''; }
+
+  document.getElementById('deleteBtn').style.display = item ? 'inline-block' : 'none';
+}
+
+function closeModal(){
+  document.getElementById('overlay').classList.remove('show');
+  currentPhotoData = null;
+}
+
+document.getElementById('addBtn').addEventListener('click', ()=> openModal(null));
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeModal(); });
+
+document.getElementById('saveBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('fName').value.trim();
+  if(!name){ showToast("Dá um nome pro item antes de salvar."); return; }
+
+  const editId = document.getElementById('editId').value;
+  const data = {
+    id: editId || String(Date.now()),
+    name,
+    cat: document.getElementById('fCat').value,
+    cond: document.getElementById('fCond').value,
+    value: document.getElementById('fValue').value,
+    date: document.getElementById('fDate').value,
+    place: document.getElementById('fPlace').value,
+    serial: document.getElementById('fSerial').value,
+    receipt: document.getElementById('fReceipt').checked,
+    wish: document.getElementById('fWish').checked,
+    notes: document.getElementById('fNotes').value,
+    photo: currentPhotoData
+  };
+
+  try{
+    await window.fbSaveItem(data);
+    closeModal();
+    showToast("Item salvo.");
+  }catch(e){
+    showToast("Erro ao salvar na nuvem. Confira sua conexão.");
+  }
+});
+
+document.getElementById('deleteBtn').addEventListener('click', async ()=>{
+  const editId = document.getElementById('editId').value;
+  try{
+    await window.fbDeleteItem(editId);
+    closeModal();
+    showToast("Item excluído.");
+  }catch(e){
+    showToast("Erro ao excluir na nuvem. Confira sua conexão.");
+  }
+});
+
+document.getElementById('search').addEventListener('input', (e)=>{
+  query = e.target.value;
+  renderGrid();
+});
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  if(items.length===0){ showToast("Nada para exportar ainda."); return; }
+  const headers = ["Numero","Nome","Categoria","Condicao","Valor estimado","Data aquisicao","Local","Serie/Edicao","Tem nota fiscal","Wishlist","Observacoes"];
+  const rows = items.map(i => [
+    catNum(i.id), i.name, i.cat, i.cond, i.value||'', i.date||'', i.place||'', i.serial||'',
+    i.receipt ? "Sim":"Não", i.wish ? "Sim":"Não", (i.notes||'').replace(/\n/g,' ')
+  ]);
+  const csv = [headers, ...rows].map(r =>
+    r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')
+  ).join('\n');
+  const blob = new Blob(["\uFEFF" + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'colecao-inventario.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+render();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+    createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    initializeFirestore, persistentLocalCache, persistentSingleTabManager,
+    collection, doc, setDoc, deleteDoc, onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  // ======================================================
+  // COLE AQUI a config do seu projeto Firebase
+  // (Console Firebase > Configurações do projeto > Seus apps > SDK setup)
+  // ======================================================
+  const firebaseConfig = {
+    apiKey: "COLE_AQUI",
+    authDomain: "COLE_AQUI.firebaseapp.com",
+    projectId: "COLE_AQUI",
+    storageBucket: "COLE_AQUI.appspot.com",
+    messagingSenderId: "COLE_AQUI",
+    appId: "COLE_AQUI"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() })
+  });
+
+  let uid = null;
+  let unsubscribe = null;
+
+  const loginGate = document.getElementById('loginGate');
+  const loginError = document.getElementById('loginError');
+  const signOutWrap = document.getElementById('signOutWrap');
+  const syncStatus = document.getElementById('syncStatus');
+
+  document.getElementById('googleBtn').addEventListener('click', async () => {
+    loginError.style.display = 'none';
+    try{
+      await signInWithPopup(auth, new GoogleAuthProvider());
+    }catch(e){
+      showLoginError(friendlyError(e));
+    }
+  });
+
+  document.getElementById('signOutBtn').addEventListener('click', () => signOut(auth));
+
+  function friendlyError(e){
+    const map = {
+      'auth/invalid-email': 'E-mail inválido.',
+      'auth/missing-password': 'Digite uma senha.',
+      'auth/weak-password': 'Senha muito curta (mín. 6 caracteres).',
+      'auth/email-already-in-use': 'Já existe uma conta com esse e-mail. Tenta entrar em vez de criar conta.',
+      'auth/invalid-credential': 'E-mail ou senha incorretos.',
+      'auth/wrong-password': 'E-mail ou senha incorretos.',
+      'auth/user-not-found': 'Não existe conta com esse e-mail. Crie uma conta primeiro.',
+      'auth/too-many-requests': 'Muitas tentativas. Espera um pouco e tenta de novo.'
+    };
+    return map[e?.code] || 'Não foi possível entrar. Tenta de novo.';
+  }
+
+  function showLoginError(msg){
+    loginError.textContent = msg;
+    loginError.style.display = 'block';
+  }
+
+  document.getElementById('emailSignInBtn').addEventListener('click', async () => {
+    loginError.style.display = 'none';
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    if(!email || !pass){ showLoginError('Preenche e-mail e senha.'); return; }
+    try{
+      await signInWithEmailAndPassword(auth, email, pass);
+    }catch(e){
+      showLoginError(friendlyError(e));
+    }
+  });
+
+  document.getElementById('emailSignUpBtn').addEventListener('click', async () => {
+    loginError.style.display = 'none';
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    if(!email || !pass){ showLoginError('Preenche e-mail e senha.'); return; }
+    try{
+      await createUserWithEmailAndPassword(auth, email, pass);
+    }catch(e){
+      showLoginError(friendlyError(e));
+    }
+  });
+
+  document.getElementById('forgotPass').addEventListener('click', async () => {
+    loginError.style.display = 'none';
+    const email = document.getElementById('loginEmail').value.trim();
+    if(!email){ showLoginError('Digita seu e-mail no campo acima primeiro.'); return; }
+    try{
+      await sendPasswordResetEmail(auth, email);
+      showLoginError('Link de redefinição enviado para o seu e-mail.');
+      loginError.style.color = 'var(--cyan)';
+    }catch(e){
+      loginError.style.color = 'var(--magenta)';
+      showLoginError(friendlyError(e));
+    }
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+
+    if (user) {
+      uid = user.uid;
+      document.body.classList.remove('gated');
+      signOutWrap.style.display = 'block';
+      syncStatus.style.display = 'block';
+      syncStatus.textContent = 'sincronizando…';
+
+      const itemsRef = collection(db, 'users', uid, 'items');
+      unsubscribe = onSnapshot(itemsRef, (snap) => {
+        window.items = snap.docs.map(d => d.data());
+        window.render();
+        syncStatus.textContent = 'sincronizado ✓';
+      }, () => {
+        syncStatus.textContent = 'erro de sincronização';
+      });
+
+      window.fbSaveItem = (data) => setDoc(doc(db, 'users', uid, 'items', String(data.id)), data);
+      window.fbDeleteItem = (id) => deleteDoc(doc(db, 'users', uid, 'items', String(id)));
+    } else {
+      uid = null;
+      document.body.classList.add('gated');
+      signOutWrap.style.display = 'none';
+      syncStatus.style.display = 'none';
+      window.items = [];
+    }
+  });
+</script>
+</body>
+</html>
