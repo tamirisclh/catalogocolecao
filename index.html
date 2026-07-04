@@ -620,7 +620,7 @@ if('serviceWorker' in navigator){
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
-    getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+    getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged,
     createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
@@ -657,10 +657,14 @@ if('serviceWorker' in navigator){
   document.getElementById('googleBtn').addEventListener('click', async () => {
     loginError.style.display = 'none';
     try{
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      await signInWithRedirect(auth, new GoogleAuthProvider());
     }catch(e){
       showLoginError(friendlyError(e));
     }
+  });
+
+  getRedirectResult(auth).catch((e) => {
+    showLoginError(friendlyError(e));
   });
 
   document.getElementById('signOutBtn').addEventListener('click', () => signOut(auth));
@@ -728,6 +732,7 @@ if('serviceWorker' in navigator){
     if (user) {
       uid = user.uid;
       document.body.classList.remove('gated');
+      loginGate.style.display = 'none';
       signOutWrap.style.display = 'block';
       syncStatus.style.display = 'block';
       syncStatus.textContent = 'sincronizando…';
@@ -746,6 +751,7 @@ if('serviceWorker' in navigator){
     } else {
       uid = null;
       document.body.classList.add('gated');
+      loginGate.style.display = 'flex';
       signOutWrap.style.display = 'none';
       syncStatus.style.display = 'none';
       window.items = [];
