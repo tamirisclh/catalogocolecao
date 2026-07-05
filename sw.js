@@ -1,4 +1,4 @@
-const CACHE = 'colecao-v2';
+const CACHE = 'colecao-v3';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -21,15 +21,22 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
-  const isHTML = e.request.mode === 'navigate' || e.request.url.endsWith('.html');
+  const url = new URL(e.request.url);
+
+  // Só cuida dos arquivos do próprio site. Firebase, Google e qualquer coisa
+  // de outro domínio passam direto, sem o service worker interferir.
+  if (e.request.method !== 'GET' || url.origin !== self.location.origin) {
+    return;
+  }
+
+  const isHTML = e.request.mode === 'navigate' || url.pathname.endsWith('.html');
 
   if (isHTML) {
-    // network-first: sempre busca a versão mais nova quando online
     e.respondWith(
       fetch(e.request)
         .then((res) => {
-          caches.open(CACHE).then((cache) => cache.put(e.request, res.clone()));
+          const copy = res.clone();
+          caches.open(CACHE).then((cache) => cache.put(e.request, copy));
           return res;
         })
         .catch(() => caches.match(e.request))
@@ -39,12 +46,12 @@ self.addEventListener('fetch', (e) => {
 
   e.respondWith(
     caches.match(e.request).then((cached) => {
-      const fetchPromise = fetch(e.request).then((networkResponse) => {
-        caches.open(CACHE).then((cache) => cache.put(e.request, networkResponse.clone()));
-        return networkResponse;
-      }).catch(() => cached);
-      return cached || fetchPromise;
+      if (cached) return cached;
+      return fetch(e.request).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((cache) => cache.put(e.request, copy));
+        return res;
+      });
     })
   );
 });
-
