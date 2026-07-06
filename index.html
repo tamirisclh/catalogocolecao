@@ -462,9 +462,29 @@ function render(){
   renderGrid();
 }
 
+function isHeic(file){
+  const type = (file.type || '').toLowerCase();
+  const name = (file.name || '').toLowerCase();
+  return type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif');
+}
+
+async function convertHeicToJpeg(file){
+  if(!window.heic2any){
+    await new Promise((resolve, reject)=>{
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  const blob = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.8 });
+  return blob;
+}
+
 function resizeImage(file){
   return new Promise((resolve,reject)=>{
-    if(file.type && !file.type.startsWith('image/')){
+    if(file.type && !file.type.startsWith('image/') && !isHeic(file)){
       reject(new Error('not-an-image'));
       return;
     }
@@ -493,9 +513,22 @@ document.getElementById('photoLabel').addEventListener('click', ()=> document.ge
 document.getElementById('photoInput').addEventListener('change', async (e)=>{
   const file = e.target.files[0];
   if(!file) return;
+
+  let workingFile = file;
+  try{
+    if(isHeic(file)){
+      showToast("Convertendo formato de imagem…");
+      workingFile = await convertHeicToJpeg(file);
+    }
+  }catch(err){
+    showToast("Não foi possível converter essa imagem HEIC. Tenta outra foto.");
+    e.target.value = '';
+    return;
+  }
+
   showToast("Processando imagem…");
   try{
-    const dataUrl = await resizeImage(file);
+    const dataUrl = await resizeImage(workingFile);
     currentPhotoData = dataUrl;
     const prev = document.getElementById('photoPreview');
     prev.src = dataUrl;
@@ -503,7 +536,7 @@ document.getElementById('photoInput').addEventListener('change', async (e)=>{
     document.getElementById('removePhotoBtn').style.display = 'block';
   }catch(err){
     if(err && err.message === 'decode-failed'){
-      showToast("Esse formato de imagem não é suportado (comum em fotos HEIC). Tenta uma foto em JPG/PNG, ou muda o formato da câmera do celular pra JPEG.");
+      showToast("Esse formato de imagem não é suportado. Tenta uma foto em JPG/PNG.");
     } else {
       showToast("Não foi possível processar essa imagem. Tenta de novo.");
     }
