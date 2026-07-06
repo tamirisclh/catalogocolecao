@@ -181,6 +181,8 @@
     cursor:pointer;
   }
   #removePhotoBtn:hover{background:var(--surface);}
+  .photo-btn-row{display:flex;gap:8px;}
+  .photo-btn-row .photo-input{flex:1;font-size:12px;padding:14px 8px;}
   .modal-actions{display:flex;justify-content:space-between;margin-top:20px;gap:10px;}
   .modal-actions .right{display:flex;gap:8px;}
   .check-row{display:flex;align-items:center;gap:8px;margin-bottom:13px;}
@@ -286,9 +288,14 @@
       <label>Foto</label>
       <img class="photo-preview" id="photoPreview">
       <button type="button" id="removePhotoBtn" style="display:none">Remover foto</button>
-      <label class="photo-input" id="photoLabel">Clique para escolher uma foto (será redimensionada automaticamente)
-        <input type="file" id="photoInput" accept="image/*" style="display:none">
-      </label>
+      <div class="photo-btn-row">
+        <label class="photo-input" id="photoLabel">Escolher da galeria
+          <input type="file" id="photoInput" accept="image/*" style="display:none">
+        </label>
+        <label class="photo-input" id="cameraLabel">Tirar foto agora
+          <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
+        </label>
+      </div>
     </div>
 
     <div class="field">
@@ -390,11 +397,12 @@ async function saveItems(){
   // Substituído: gravações agora são feitas item a item direto no Firestore
 }
 
-function showToast(msg){
+function showToast(msg, duration){
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200);
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>t.classList.remove('show'), duration || 2200);
 }
 
 function renderChips(){
@@ -510,8 +518,9 @@ function resizeImage(file){
 }
 
 document.getElementById('photoLabel').addEventListener('click', ()=> document.getElementById('photoInput').click());
-document.getElementById('photoInput').addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
+document.getElementById('cameraLabel').addEventListener('click', ()=> document.getElementById('cameraInput').click());
+
+async function handlePhotoFile(file){
   if(!file) return;
 
   let workingFile = file;
@@ -521,8 +530,7 @@ document.getElementById('photoInput').addEventListener('change', async (e)=>{
       workingFile = await convertHeicToJpeg(file);
     }
   }catch(err){
-    showToast("Não foi possível converter essa imagem HEIC. Tenta outra foto.");
-    e.target.value = '';
+    showToast("Erro ao converter HEIC: " + (err && err.message ? err.message : String(err)), 7000);
     return;
   }
 
@@ -534,12 +542,29 @@ document.getElementById('photoInput').addEventListener('change', async (e)=>{
     prev.src = dataUrl;
     prev.style.display = 'block';
     document.getElementById('removePhotoBtn').style.display = 'block';
+    showToast("Foto adicionada ✓");
   }catch(err){
-    if(err && err.message === 'decode-failed'){
-      showToast("Esse formato de imagem não é suportado. Tenta uma foto em JPG/PNG.");
-    } else {
-      showToast("Não foi possível processar essa imagem. Tenta de novo.");
-    }
+    showToast("Erro ao processar imagem: " + (err && err.message ? err.message : String(err)), 7000);
+  }
+}
+
+document.getElementById('photoInput').addEventListener('change', async (e)=>{
+  try{
+    const file = e.target.files[0];
+    await handlePhotoFile(file);
+  }catch(err){
+    showToast("Erro inesperado: " + (err && err.message ? err.message : String(err)), 7000);
+  } finally {
+    e.target.value = '';
+  }
+});
+
+document.getElementById('cameraInput').addEventListener('change', async (e)=>{
+  try{
+    const file = e.target.files[0];
+    await handlePhotoFile(file);
+  }catch(err){
+    showToast("Erro inesperado: " + (err && err.message ? err.message : String(err)), 7000);
   } finally {
     e.target.value = '';
   }
