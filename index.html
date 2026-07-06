@@ -528,8 +528,8 @@ function resizeImage(file){
   });
 }
 
-document.getElementById('photoLabel').addEventListener('click', ()=> document.getElementById('photoInput').click());
-document.getElementById('cameraLabel').addEventListener('click', ()=> document.getElementById('cameraInput').click());
+// Os inputs já estão dentro dos <label>, então clicar no label já abre o seletor nativamente.
+// Nada de listener extra de click aqui — evita abrir o seletor duas vezes.
 
 async function handlePhotoFile(file){
   if(!file) return;
