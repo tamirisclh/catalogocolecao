@@ -675,12 +675,12 @@ if('serviceWorker' in navigator){
       'auth/missing-password': 'Digite uma senha.',
       'auth/weak-password': 'Senha muito curta (mín. 6 caracteres).',
       'auth/email-already-in-use': 'Já existe uma conta com esse e-mail. Tenta entrar em vez de criar conta.',
-      'auth/invalid-credential': 'E-mail ou senha incorretos.',
+      'auth/invalid-credential': 'E-mail ou senha incorretos (ou essa conta ainda não existe — clique em "Criar conta").',
       'auth/wrong-password': 'E-mail ou senha incorretos.',
       'auth/user-not-found': 'Não existe conta com esse e-mail. Crie uma conta primeiro.',
       'auth/too-many-requests': 'Muitas tentativas. Espera um pouco e tenta de novo.'
     };
-    return map[e?.code] || 'Não foi possível entrar. Tenta de novo.';
+    return map[e?.code] || ('Não foi possível entrar. Código: ' + (e?.code || e?.message || 'desconhecido'));
   }
 
   function showLoginError(msg){
