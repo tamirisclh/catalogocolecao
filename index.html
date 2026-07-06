@@ -476,17 +476,28 @@ function isHeic(file){
   return type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif');
 }
 
+function withTimeout(promise, ms, label){
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout: ' + label)), ms))
+  ]);
+}
+
 async function convertHeicToJpeg(file){
   if(!window.heic2any){
-    await new Promise((resolve, reject)=>{
+    await withTimeout(new Promise((resolve, reject)=>{
       const s = document.createElement('script');
       s.src = 'https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js';
       s.onload = resolve;
-      s.onerror = reject;
+      s.onerror = () => reject(new Error('falha ao carregar biblioteca de conversão'));
       document.head.appendChild(s);
-    });
+    }), 8000, 'carregar-heic2any');
   }
-  const blob = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.8 });
+  const blob = await withTimeout(
+    window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.8 }),
+    15000,
+    'converter-heic'
+  );
   return blob;
 }
 
@@ -522,11 +533,12 @@ document.getElementById('cameraLabel').addEventListener('click', ()=> document.g
 
 async function handlePhotoFile(file){
   if(!file) return;
+  showToast("Foto recebida, processando…", 4000);
 
   let workingFile = file;
   try{
     if(isHeic(file)){
-      showToast("Convertendo formato de imagem…");
+      showToast("Convertendo formato de imagem (pode levar alguns segundos)…", 6000);
       workingFile = await convertHeicToJpeg(file);
     }
   }catch(err){
@@ -534,9 +546,9 @@ async function handlePhotoFile(file){
     return;
   }
 
-  showToast("Processando imagem…");
+  showToast("Redimensionando imagem…", 4000);
   try{
-    const dataUrl = await resizeImage(workingFile);
+    const dataUrl = await withTimeout(resizeImage(workingFile), 10000, 'redimensionar');
     currentPhotoData = dataUrl;
     const prev = document.getElementById('photoPreview');
     prev.src = dataUrl;
