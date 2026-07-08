@@ -297,6 +297,7 @@
 
   <div class="bulk-bar" id="bulkBar" style="display:none">
     <span id="bulkCount">0 selecionados</span>
+    <button class="btn" id="bulkSelectAllBtn">Marcar todos</button>
     <select id="bulkCatSelect"></select>
     <button class="btn" id="bulkCatBtn">Mudar categoria</button>
     <button class="btn danger" id="bulkDeleteBtn">Excluir selecionados</button>
@@ -510,6 +511,13 @@ function toggleSelect(id){
   renderGrid();
 }
 
+function getFilteredItems(){
+  return items.filter(i=>
+    (activeCat==="Todos" || i.cat===activeCat) &&
+    i.name.toLowerCase().includes(query.toLowerCase())
+  );
+}
+
 function updateBulkBar(){
   const bar = document.getElementById('bulkBar');
   const count = selectedIds.size;
@@ -517,7 +525,23 @@ function updateBulkBar(){
   bar.style.display = selectionMode ? 'flex' : 'none';
   document.getElementById('bulkCatBtn').disabled = count===0;
   document.getElementById('bulkDeleteBtn').disabled = count===0;
+
+  const visible = getFilteredItems();
+  const allSelected = visible.length>0 && visible.every(i=>selectedIds.has(String(i.id)));
+  document.getElementById('bulkSelectAllBtn').textContent = allSelected ? 'Desmarcar todos' : 'Marcar todos';
 }
+
+document.getElementById('bulkSelectAllBtn').addEventListener('click', ()=>{
+  const visible = getFilteredItems();
+  const allSelected = visible.length>0 && visible.every(i=>selectedIds.has(String(i.id)));
+  if(allSelected){
+    visible.forEach(i=>selectedIds.delete(String(i.id)));
+  } else {
+    visible.forEach(i=>selectedIds.add(String(i.id)));
+  }
+  updateBulkBar();
+  renderGrid();
+});
 
 document.getElementById('selectModeBtn').addEventListener('click', ()=>{
   selectionMode = !selectionMode;
