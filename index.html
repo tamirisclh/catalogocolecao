@@ -119,6 +119,23 @@
     transition:border-color 0.15s;
   }
   .card:hover{border-color:var(--border-strong);}
+  .card.selectable{cursor:default;}
+  .card-check{
+    position:absolute;top:8px;left:8px;z-index:5;
+    width:22px;height:22px;border-radius:6px;
+    background:rgba(11,14,20,0.75);border:1.5px solid var(--border-strong);
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;color:transparent;
+  }
+  .card.selected{border-color:var(--cyan);}
+  .card.selected .card-check{background:var(--cyan);border-color:var(--cyan);color:#04231C;}
+
+  .bulk-bar{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    background:var(--surface);border:1px solid var(--border-strong);
+    border-radius:10px;padding:10px 14px;margin-bottom:14px;
+  }
+  .bulk-bar span{font-family:var(--font-mono);font-size:12.5px;color:var(--text-muted);margin-right:4px;}
   .card .photo{
     width:100%;aspect-ratio:1/1;background:var(--surface-2);
     display:flex;align-items:center;justify-content:center;
@@ -271,7 +288,19 @@
   <div class="toolbar">
     <input id="search" type="text" placeholder="Buscar por nome...">
     <button class="btn" id="exportBtn">Exportar CSV</button>
+    <label class="btn" id="importLabel" style="cursor:pointer;">Importar planilha
+      <input type="file" id="importInput" accept=".csv,.xlsx,.xls" style="display:none">
+    </label>
+    <button class="btn" id="selectModeBtn">Selecionar</button>
     <button class="btn primary" id="addBtn">+ Novo item</button>
+  </div>
+
+  <div class="bulk-bar" id="bulkBar" style="display:none">
+    <span id="bulkCount">0 selecionados</span>
+    <select id="bulkCatSelect"></select>
+    <button class="btn" id="bulkCatBtn">Mudar categoria</button>
+    <button class="btn danger" id="bulkDeleteBtn">Excluir selecionados</button>
+    <button class="btn" id="bulkCancelBtn">Cancelar</button>
   </div>
 
   <div class="chips" id="chips"></div>
@@ -383,7 +412,6 @@ let query = "";
 let currentPhotoData = null;
 const CATS = ["Funko Pop","Réplica","Livro","Jogo","Carrinho","Boneco / Figure","Outro"];
 
-const catNum = id => "N.º " + String(id).padStart(3,'0');
 
 function money(v){
   return "R$ " + Number(v||0).toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0});
@@ -425,6 +453,9 @@ function renderStats(){
   document.getElementById('statIncomplete').textContent = incomplete;
 }
 
+let selectionMode = false;
+let selectedIds = new Set();
+
 function renderGrid(){
   const filtered = items.filter(i=>
     (activeCat==="Todos" || i.cat===activeCat) &&
@@ -446,9 +477,10 @@ function renderGrid(){
     const bg = i.photo ? `background-image:url(${i.photo})` : '';
     const photoContent = i.photo ? '' : 'sem foto';
     const incomplete = !i.wish && (!i.photo || !i.value);
-    return `<div class="card" data-id="${i.id}">
+    const isSelected = selectedIds.has(String(i.id));
+    return `<div class="card ${selectionMode ? 'selectable' : ''} ${isSelected ? 'selected' : ''}" data-id="${i.id}">
+      ${selectionMode ? `<div class="card-check">${isSelected ? '✓' : ''}</div>` : ''}
       <div class="photo" style="${bg}">${photoContent}</div>
-      <span class="tag-num">${catNum(i.id)}</span>
       ${i.wish ? '<span class="star">★</span>' : ''}
       ${incomplete ? '<span class="incomplete-dot" title="Documentação incompleta"></span>' : ''}
       <div class="body">
@@ -460,9 +492,90 @@ function renderGrid(){
   }).join('') + `</div>`;
 
   document.querySelectorAll('.card').forEach(el=>{
-    el.addEventListener('click', ()=> openModal(el.dataset.id));
+    el.addEventListener('click', ()=>{
+      if(selectionMode){
+        toggleSelect(el.dataset.id);
+      } else {
+        openModal(el.dataset.id);
+      }
+    });
   });
 }
+
+function toggleSelect(id){
+  id = String(id);
+  if(selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  updateBulkBar();
+  renderGrid();
+}
+
+function updateBulkBar(){
+  const bar = document.getElementById('bulkBar');
+  const count = selectedIds.size;
+  document.getElementById('bulkCount').textContent = `${count} selecionado${count===1?'':'s'}`;
+  bar.style.display = selectionMode ? 'flex' : 'none';
+  document.getElementById('bulkCatBtn').disabled = count===0;
+  document.getElementById('bulkDeleteBtn').disabled = count===0;
+}
+
+document.getElementById('selectModeBtn').addEventListener('click', ()=>{
+  selectionMode = !selectionMode;
+  selectedIds.clear();
+  document.getElementById('selectModeBtn').textContent = selectionMode ? 'Cancelar seleção' : 'Selecionar';
+  updateBulkBar();
+  renderGrid();
+});
+
+document.getElementById('bulkCancelBtn').addEventListener('click', ()=>{
+  selectionMode = false;
+  selectedIds.clear();
+  document.getElementById('selectModeBtn').textContent = 'Selecionar';
+  updateBulkBar();
+  renderGrid();
+});
+
+document.getElementById('bulkCatSelect').innerHTML = CATS.map(c=>`<option value="${c}">${c}</option>`).join('');
+
+document.getElementById('bulkCatBtn').addEventListener('click', async ()=>{
+  const newCat = document.getElementById('bulkCatSelect').value;
+  const ids = Array.from(selectedIds);
+  if(ids.length===0) return;
+  showToast(`Atualizando categoria de ${ids.length} itens…`, 4000);
+  let ok=0, fail=0;
+  for(const id of ids){
+    const item = items.find(i=>String(i.id)===id);
+    if(!item) continue;
+    try{
+      await window.fbSaveItem({...item, cat:newCat});
+      ok++;
+    }catch(e){ fail++; }
+  }
+  showToast(`${ok} itens atualizados${fail?', '+fail+' falharam':''}.`, 5000);
+  selectionMode = false;
+  selectedIds.clear();
+  document.getElementById('selectModeBtn').textContent = 'Selecionar';
+  updateBulkBar();
+});
+
+document.getElementById('bulkDeleteBtn').addEventListener('click', async ()=>{
+  const ids = Array.from(selectedIds);
+  if(ids.length===0) return;
+  if(!confirm(`Excluir ${ids.length} item(ns) selecionado(s)? Essa ação não pode ser desfeita.`)) return;
+  showToast(`Excluindo ${ids.length} itens…`, 4000);
+  let ok=0, fail=0;
+  for(const id of ids){
+    try{
+      await window.fbDeleteItem(id);
+      ok++;
+    }catch(e){ fail++; }
+  }
+  showToast(`${ok} itens excluídos${fail?', '+fail+' falharam':''}.`, 5000);
+  selectionMode = false;
+  selectedIds.clear();
+  document.getElementById('selectModeBtn').textContent = 'Selecionar';
+  updateBulkBar();
+});
 
 function render(){
   renderChips();
@@ -671,11 +784,117 @@ document.getElementById('search').addEventListener('input', (e)=>{
   renderGrid();
 });
 
+const MESES_PT = {jan:'01',fev:'02',mar:'03',abr:'04',mai:'05',jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12'};
+
+function parseImportDate(v){
+  if(!v) return '';
+  if(v instanceof Date && !isNaN(v)){
+    const y = v.getFullYear(), m = String(v.getMonth()+1).padStart(2,'0'), d = String(v.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(v).trim().toLowerCase();
+  const m = s.match(/^([a-zç]{3})\.?\/(\d{2,4})$/);
+  if(m && MESES_PT[m[1]]){
+    let year = m[2].length===2 ? '20'+m[2] : m[2];
+    return `${year}-${MESES_PT[m[1]]}-01`;
+  }
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(iso) return s;
+  return '';
+}
+
+function parseImportValue(v){
+  if(v===undefined || v===null || v==='' || v==='-') return '';
+  if(typeof v === 'number') return v.toFixed(2);
+  const s = String(v).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? '' : n.toFixed(2);
+}
+
+function normalizeHeader(h){
+  return String(h||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+async function loadSheetJS(){
+  if(window.XLSX) return;
+  await new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('falha ao carregar biblioteca de planilha'));
+    document.head.appendChild(s);
+  });
+}
+
+document.getElementById('importInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+
+  showToast("Lendo planilha…", 4000);
+  try{
+    await withTimeout(loadSheetJS(), 8000, 'carregar-xlsx');
+    const buf = await file.arrayBuffer();
+    const wb = window.XLSX.read(buf, { type: 'array', cellDates: true });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+
+    // acha a linha de cabeçalho (a primeira linha com pelo menos 2 células não vazias)
+    let headerIdx = rows.findIndex(r => r.filter(c=>String(c).trim()!=='').length >= 2);
+    if(headerIdx === -1){ showToast("Não encontrei cabeçalho na planilha."); return; }
+
+    const headers = rows[headerIdx].map(normalizeHeader);
+    const col = (names) => headers.findIndex(h => names.includes(h));
+
+    const idxName  = col(['funko','nome','item','nome do item']);
+    const idxValue = col(['preco pago','valor','valor estimado','preco']);
+    const idxPlace = col(['loja','local','local de compra','procedencia']);
+    const idxDate  = col(['mes aquisicao','data','data de aquisicao']);
+    const idxCat   = col(['categoria']);
+    const idxCond  = col(['condicao']);
+    const idxNotes = col(['observacoes','notas']);
+
+    if(idxName === -1){ showToast("Não encontrei uma coluna de nome do item na planilha."); return; }
+
+    const dataRows = rows.slice(headerIdx+1).filter(r => String(r[idxName]||'').trim() !== '');
+    if(dataRows.length === 0){ showToast("Nenhum item encontrado na planilha."); return; }
+
+    showToast(`Importando ${dataRows.length} itens…`, 6000);
+    let ok = 0, fail = 0;
+    for(const r of dataRows){
+      const data = {
+        id: String(Date.now()) + '-' + Math.random().toString(36).slice(2,7),
+        name: String(r[idxName]).trim(),
+        cat: idxCat!==-1 && r[idxCat] ? String(r[idxCat]).trim() : 'Funko Pop',
+        cond: idxCond!==-1 && r[idxCond] ? String(r[idxCond]).trim() : 'Novo / lacrado',
+        value: idxValue!==-1 ? parseImportValue(r[idxValue]) : '',
+        date: idxDate!==-1 ? parseImportDate(r[idxDate]) : '',
+        place: idxPlace!==-1 ? String(r[idxPlace]||'').trim() : '',
+        serial: '',
+        receipt: false,
+        wish: false,
+        notes: idxNotes!==-1 ? String(r[idxNotes]||'').trim() : '',
+        photo: null
+      };
+      try{
+        await window.fbSaveItem(data);
+        ok++;
+      }catch(err){
+        fail++;
+      }
+    }
+    showToast(`Importação concluída: ${ok} itens adicionados${fail ? ', ' + fail + ' falharam' : ''}.`, 7000);
+  }catch(err){
+    showToast("Erro ao importar: " + (err && err.message ? err.message : String(err)), 7000);
+  }
+});
+
 document.getElementById('exportBtn').addEventListener('click', ()=>{
   if(items.length===0){ showToast("Nada para exportar ainda."); return; }
   const headers = ["Numero","Nome","Categoria","Condicao","Valor estimado","Data aquisicao","Local","Serie/Edicao","Tem nota fiscal","Wishlist","Observacoes"];
-  const rows = items.map(i => [
-    catNum(i.id), i.name, i.cat, i.cond, i.value||'', i.date||'', i.place||'', i.serial||'',
+  const rows = items.map((i, idx) => [
+    idx+1, i.name, i.cat, i.cond, i.value||'', i.date||'', i.place||'', i.serial||'',
     i.receipt ? "Sim":"Não", i.wish ? "Sim":"Não", (i.notes||'').replace(/\n/g,' ')
   ]);
   const csv = [headers, ...rows].map(r =>
