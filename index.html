@@ -308,6 +308,16 @@
     </label>
     <button class="btn" id="selectModeBtn">Selecionar</button>
     <button class="btn" id="manageCatBtn">Categorias</button>
+    <select id="sortSelect">
+      <option value="name-asc">Nome (A-Z)</option>
+      <option value="name-desc">Nome (Z-A)</option>
+      <option value="value-desc">Valor (maior primeiro)</option>
+      <option value="value-asc">Valor (menor primeiro)</option>
+      <option value="acquired-desc">Aquisição (mais recente)</option>
+      <option value="acquired-asc">Aquisição (mais antiga)</option>
+      <option value="added-desc" selected>Cadastro (mais recente)</option>
+      <option value="added-asc">Cadastro (mais antigo)</option>
+    </select>
     <button class="btn primary" id="addBtn">+ Novo item</button>
   </div>
 
@@ -482,10 +492,7 @@ let selectionMode = false;
 let selectedIds = new Set();
 
 function renderGrid(){
-  const filtered = items.filter(i=>
-    (activeCat==="Todos" || i.cat===activeCat) &&
-    i.name.toLowerCase().includes(query.toLowerCase())
-  );
+  const filtered = getFilteredItems();
 
   const wrap = document.getElementById('gridWrap');
 
@@ -535,12 +542,43 @@ function toggleSelect(id){
   renderGrid();
 }
 
+let sortBy = "added-desc";
+
 function getFilteredItems(){
-  return items.filter(i=>
+  const filtered = items.filter(i=>
     (activeCat==="Todos" || i.cat===activeCat) &&
     i.name.toLowerCase().includes(query.toLowerCase())
   );
+
+  const [field, dir] = sortBy.split('-');
+  const mult = dir === 'asc' ? 1 : -1;
+
+  return filtered.slice().sort((a,b)=>{
+    let va, vb;
+    if(field==='name'){
+      va = (a.name||'').toLowerCase(); vb = (b.name||'').toLowerCase();
+      return va < vb ? -1*mult : va > vb ? 1*mult : 0;
+    }
+    if(field==='value'){
+      va = Number(a.value)||0; vb = Number(b.value)||0;
+      return (va - vb) * mult;
+    }
+    if(field==='acquired'){
+      va = a.date || ''; vb = b.date || '';
+      return (va < vb ? -1 : va > vb ? 1 : 0) * mult;
+    }
+    if(field==='added'){
+      va = parseInt(a.id, 10) || 0; vb = parseInt(b.id, 10) || 0;
+      return (va - vb) * mult;
+    }
+    return 0;
+  });
 }
+
+document.getElementById('sortSelect').addEventListener('change', (e)=>{
+  sortBy = e.target.value;
+  render();
+});
 
 function updateBulkBar(){
   const bar = document.getElementById('bulkBar');
