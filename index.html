@@ -243,17 +243,6 @@
   #loginGate h1{font-family:var(--font-display);font-size:24px;margin:0;}
   #loginGate p{color:var(--text-muted);font-size:13.5px;max-width:320px;margin:0;}
   #loginError{color:var(--magenta);font-size:12.5px;display:none;}
-  #googleBtn{
-    display:flex;align-items:center;gap:10px;
-    background:#fff;color:#1f1f1f;border:none;border-radius:8px;
-    padding:11px 20px;font-family:var(--font-body);font-weight:600;font-size:14px;
-    cursor:pointer;
-  }
-  #googleBtn:hover{opacity:0.92;}
-  .or-divider{
-    color:var(--text-faint);font-size:11.5px;font-family:var(--font-mono);
-    text-transform:uppercase;letter-spacing:0.08em;margin-top:4px;
-  }
   #emailForm{display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px;}
   #emailForm .field{margin:0;}
   .email-actions{display:flex;gap:8px;}
@@ -280,13 +269,6 @@
 <div id="loginGate">
   <h1>Arquivo da coleção</h1>
   <p>Entre para acessar seu catálogo, sincronizado na nuvem.</p>
-
-  <button id="googleBtn">
-    <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.86 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
-    Entrar com Google
-  </button>
-
-  <div class="or-divider">ou com e-mail</div>
 
   <div id="emailForm">
     <div class="field"><input id="loginEmail" type="email" placeholder="seu@email.com"></div>
@@ -1101,7 +1083,7 @@ if('serviceWorker' in navigator){
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
-    getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged,
+    getAuth, signOut, onAuthStateChanged,
     createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
@@ -1134,19 +1116,6 @@ if('serviceWorker' in navigator){
   const loginError = document.getElementById('loginError');
   const signOutWrap = document.getElementById('signOutWrap');
   const syncStatus = document.getElementById('syncStatus');
-
-  document.getElementById('googleBtn').addEventListener('click', async () => {
-    loginError.style.display = 'none';
-    try{
-      await signInWithRedirect(auth, new GoogleAuthProvider());
-    }catch(e){
-      showLoginError(friendlyError(e));
-    }
-  });
-
-  getRedirectResult(auth).catch((e) => {
-    showLoginError(friendlyError(e));
-  });
 
   document.getElementById('signOutBtn').addEventListener('click', () => signOut(auth));
 
