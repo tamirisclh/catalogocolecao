@@ -320,10 +320,7 @@
 
   <div class="toolbar">
     <input id="search" type="text" placeholder="Buscar por nome...">
-    <button class="btn" id="exportBtn">Exportar CSV</button>
-    <label class="btn" id="importLabel" style="cursor:pointer;">Importar planilha
-      <input type="file" id="importInput" accept=".csv,.xlsx,.xls" style="display:none">
-    </label>
+    <button class="btn primary" id="addBtn">+ Novo item</button>
     <button class="btn" id="selectModeBtn">Selecionar</button>
     <button class="btn" id="manageCatBtn">Categorias</button>
     <select id="sortSelect">
@@ -336,7 +333,10 @@
       <option value="added-desc" selected>Cadastro (mais recente)</option>
       <option value="added-asc">Cadastro (mais antigo)</option>
     </select>
-    <button class="btn primary" id="addBtn">+ Novo item</button>
+    <button class="btn" id="exportBtn">Exportar CSV</button>
+    <label class="btn" id="importLabel" style="cursor:pointer;">Importar planilha
+      <input type="file" id="importInput" accept=".csv,.xlsx,.xls" style="display:none">
+    </label>
   </div>
 
   <div class="bulk-bar" id="bulkBar" style="display:none">
