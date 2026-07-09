@@ -136,6 +136,21 @@
     border-radius:10px;padding:10px 14px;margin-bottom:14px;
   }
   .bulk-bar span{font-family:var(--font-mono);font-size:12.5px;color:var(--text-muted);margin-right:4px;}
+
+  .cat-list{display:flex;flex-direction:column;gap:8px;margin:12px 0;max-height:280px;overflow-y:auto;}
+  .cat-row{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--surface-2);border:1px solid var(--border);border-radius:8px;
+    padding:9px 12px;font-size:13.5px;
+  }
+  .cat-row .cat-count{color:var(--text-faint);font-size:11.5px;font-family:var(--font-mono);margin-left:8px;}
+  .cat-row .cat-del{
+    background:none;border:none;color:var(--magenta);cursor:pointer;font-size:16px;
+    padding:2px 6px;line-height:1;
+  }
+  .cat-row .cat-del:hover{color:var(--magenta-dim);}
+  .cat-add-row{display:flex;gap:8px;}
+  .cat-add-row input{flex:1;}
   .card .photo{
     width:100%;aspect-ratio:1/1;background:var(--surface-2);
     display:flex;align-items:center;justify-content:center;
@@ -292,6 +307,7 @@
       <input type="file" id="importInput" accept=".csv,.xlsx,.xls" style="display:none">
     </label>
     <button class="btn" id="selectModeBtn">Selecionar</button>
+    <button class="btn" id="manageCatBtn">Categorias</button>
     <button class="btn primary" id="addBtn">+ Novo item</button>
   </div>
 
@@ -336,15 +352,7 @@
     <div class="row2">
       <div class="field">
         <label>Categoria</label>
-        <select id="fCat">
-          <option>Funko Pop</option>
-          <option>Réplica</option>
-          <option>Livro</option>
-          <option>Jogo</option>
-          <option>Carrinho</option>
-          <option>Boneco / Figure</option>
-          <option>Outro</option>
-        </select>
+        <select id="fCat"></select>
       </div>
       <div class="field">
         <label>Condição</label>
@@ -404,6 +412,22 @@
   </div>
 </div>
 
+<div class="overlay" id="catOverlay">
+  <div class="modal">
+    <h2>Gerenciar categorias</h2>
+    <div id="catList" class="cat-list"></div>
+    <div class="field cat-add-row">
+      <input id="newCatInput" placeholder="Nova categoria...">
+      <button class="btn primary" id="addCatBtn">Adicionar</button>
+    </div>
+    <div class="modal-actions">
+      <div class="right">
+        <button class="btn" id="closeCatBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -411,7 +435,7 @@ var items = [];
 let activeCat = "Todos";
 let query = "";
 let currentPhotoData = null;
-const CATS = ["Funko Pop","Réplica","Livro","Jogo","Carrinho","Boneco / Figure","Outro"];
+var CATS = ["Funko Pop","Réplica","Livro","Jogo","Carrinho","Boneco / Figure","Outro"];
 
 
 function money(v){
@@ -559,7 +583,82 @@ document.getElementById('bulkCancelBtn').addEventListener('click', ()=>{
   renderGrid();
 });
 
-document.getElementById('bulkCatSelect').innerHTML = CATS.map(c=>`<option value="${c}">${c}</option>`).join('');
+function populateCatSelects(){
+  document.getElementById('bulkCatSelect').innerHTML = CATS.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('fCat').innerHTML = CATS.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+populateCatSelects();
+
+function renderCatModal(){
+  const list = document.getElementById('catList');
+  list.innerHTML = CATS.map(c=>{
+    const count = items.filter(i=>i.cat===c).length;
+    return `<div class="cat-row" data-cat="${c}">
+      <span>${c} <span class="cat-count">${count} item${count===1?'':'s'}</span></span>
+      <button class="cat-del" data-cat="${c}" title="Excluir categoria">✕</button>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.cat-del').forEach(btn=>{
+    btn.addEventListener('click', ()=> deleteCategory(btn.dataset.cat));
+  });
+}
+
+async function saveCategories(){
+  if(!window.fbSaveCategories) return;
+  try{
+    await window.fbSaveCategories(CATS);
+  }catch(e){
+    showToast("Erro ao salvar categorias na nuvem.", 5000);
+  }
+}
+
+async function deleteCategory(cat){
+  if(CATS.length <= 1){ showToast("Precisa ter pelo menos uma categoria."); return; }
+  const affected = items.filter(i=>i.cat===cat);
+  if(affected.length > 0){
+    const fallback = CATS.find(c=>c!==cat) || "Outro";
+    if(!confirm(`${affected.length} item(ns) usam "${cat}". Eles serão movidos para "${fallback}". Continuar?`)) return;
+    showToast(`Movendo ${affected.length} itens…`, 4000);
+    for(const item of affected){
+      try{ await window.fbSaveItem({...item, cat: fallback}); }catch(e){}
+    }
+  } else {
+    if(!confirm(`Excluir a categoria "${cat}"?`)) return;
+  }
+  CATS = CATS.filter(c=>c!==cat);
+  await saveCategories();
+  populateCatSelects();
+  renderCatModal();
+  render();
+  showToast("Categoria excluída.");
+}
+
+document.getElementById('manageCatBtn').addEventListener('click', ()=>{
+  renderCatModal();
+  document.getElementById('catOverlay').classList.add('show');
+});
+
+document.getElementById('closeCatBtn').addEventListener('click', ()=>{
+  document.getElementById('catOverlay').classList.remove('show');
+});
+
+document.getElementById('catOverlay').addEventListener('click', (e)=>{
+  if(e.target.id==='catOverlay') document.getElementById('catOverlay').classList.remove('show');
+});
+
+document.getElementById('addCatBtn').addEventListener('click', async ()=>{
+  const input = document.getElementById('newCatInput');
+  const name = input.value.trim();
+  if(!name){ showToast("Digita um nome pra categoria."); return; }
+  if(CATS.some(c=>c.toLowerCase()===name.toLowerCase())){ showToast("Essa categoria já existe."); return; }
+  CATS = [...CATS, name];
+  await saveCategories();
+  input.value = '';
+  populateCatSelects();
+  renderCatModal();
+  render();
+  showToast("Categoria adicionada ✓");
+});
 
 document.getElementById('bulkCatBtn').addEventListener('click', async ()=>{
   const newCat = document.getElementById('bulkCatSelect').value;
@@ -732,6 +831,7 @@ function openModal(id){
   overlay.classList.add('show');
   const item = id ? items.find(i=>String(i.id)===String(id)) : null;
 
+  populateCatSelects();
   document.getElementById('modalTitle').textContent = item ? "Editar item" : "Novo item";
   document.getElementById('editId').value = item ? item.id : '';
   document.getElementById('fName').value = item ? item.name : '';
@@ -950,7 +1050,7 @@ if('serviceWorker' in navigator){
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
     initializeFirestore, persistentLocalCache, persistentSingleTabManager,
-    collection, doc, setDoc, deleteDoc, onSnapshot
+    collection, doc, setDoc, deleteDoc, onSnapshot, getDoc
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   // ======================================================
@@ -1038,8 +1138,11 @@ if('serviceWorker' in navigator){
     }
   });
 
+  let unsubscribeCats = null;
+
   onAuthStateChanged(auth, (user) => {
     if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    if (unsubscribeCats) { unsubscribeCats(); unsubscribeCats = null; }
 
     if (user) {
       uid = user.uid;
@@ -1058,8 +1161,21 @@ if('serviceWorker' in navigator){
         syncStatus.textContent = 'erro de sincronização';
       });
 
+      const catsRef = doc(db, 'users', uid, 'meta', 'categories');
+      unsubscribeCats = onSnapshot(catsRef, (snap) => {
+        if (snap.exists() && Array.isArray(snap.data().list) && snap.data().list.length > 0) {
+          window.CATS = snap.data().list;
+        } else {
+          // primeira vez: cria o documento com as categorias padrão
+          setDoc(catsRef, { list: window.CATS });
+        }
+        window.populateCatSelects();
+        window.render();
+      });
+
       window.fbSaveItem = (data) => setDoc(doc(db, 'users', uid, 'items', String(data.id)), data);
       window.fbDeleteItem = (id) => deleteDoc(doc(db, 'users', uid, 'items', String(id)));
+      window.fbSaveCategories = (list) => setDoc(catsRef, { list });
     } else {
       uid = null;
       document.body.classList.add('gated');
