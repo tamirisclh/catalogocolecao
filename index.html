@@ -61,7 +61,21 @@
   .stat.warn .n{color:var(--amber);}
 
   /* toolbar */
-  .toolbar{display:flex;gap:10px;align-items:center;margin:28px 0 18px;flex-wrap:wrap;}
+  .toolbar{display:flex;gap:10px;align-items:center;margin:28px 0 12px;flex-wrap:wrap;}
+  #moreToggleBtn{display:none;}
+  .toolbar-more{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+
+  @media (max-width:640px){
+    #moreToggleBtn{display:inline-flex;}
+    .toolbar-more{display:none;}
+    .toolbar-more.open{display:flex;}
+    .toolbar-more{
+      flex-direction:column;align-items:stretch;
+      background:var(--surface);border:1px solid var(--border-strong);
+      border-radius:10px;padding:12px;
+    }
+    .toolbar-more .btn, .toolbar-more select{width:100%;text-align:left;}
+  }
   input, select, textarea{
     background:var(--surface-2);
     border:1px solid var(--border);
@@ -338,6 +352,10 @@
   <div class="toolbar">
     <input id="search" type="text" placeholder="Buscar por nome...">
     <button class="btn primary" id="addBtn">+ Novo item</button>
+    <button class="btn" id="moreToggleBtn">⋯ Mais opções</button>
+  </div>
+
+  <div class="toolbar-more" id="toolbarMore">
     <button class="btn" id="selectModeBtn">Selecionar</button>
     <button class="btn" id="manageCatBtn">Categorias</button>
     <select id="sortSelect">
@@ -666,6 +684,10 @@ function getFilteredItems(){
 document.getElementById('sortSelect').addEventListener('change', (e)=>{
   sortBy = e.target.value;
   render();
+});
+
+document.getElementById('moreToggleBtn').addEventListener('click', ()=>{
+  document.getElementById('toolbarMore').classList.toggle('open');
 });
 
 document.querySelectorAll('#viewToggle .vt-btn').forEach(btn=>{
