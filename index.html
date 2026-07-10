@@ -151,6 +151,40 @@
   .cat-row .cat-del:hover{color:var(--magenta-dim);}
   .cat-add-row{display:flex;gap:8px;}
   .cat-add-row input{flex:1;}
+
+  /* toggles de visualização */
+  .view-row{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px;}
+  .view-toggle{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:3px;}
+  .vt-btn{
+    background:none;border:none;color:var(--text-muted);font-family:var(--font-body);
+    font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:6px;cursor:pointer;
+  }
+  .vt-btn.active{background:var(--cyan);color:#04231C;}
+  .vt-btn:hover:not(.active){color:var(--text);}
+
+  /* modo lista */
+  .list-row{
+    display:flex;align-items:center;gap:12px;
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:10px 14px;margin-bottom:8px;cursor:pointer;position:relative;
+  }
+  .list-row:hover{border-color:var(--border-strong);}
+  .list-row.selected{border-color:var(--cyan);}
+  .list-row .list-thumb{
+    width:44px;height:44px;border-radius:7px;background:var(--surface-2);
+    background-size:cover;background-position:center;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text-faint);
+  }
+  .list-row .list-body{flex:1;min-width:0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .list-row .list-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}
+  .list-row .list-cat{font-size:12px;color:var(--text-muted);}
+  .list-row .list-value{font-family:var(--font-mono);font-size:13px;color:var(--cyan);margin-left:auto;}
+  .list-row .list-check{
+    width:20px;height:20px;border-radius:5px;flex-shrink:0;
+    background:var(--surface-2);border:1.5px solid var(--border-strong);
+    display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;
+  }
+  .list-row.selected .list-check{background:var(--cyan);border-color:var(--cyan);color:#04231C;}
   .card .photo{
     width:100%;aspect-ratio:1/1;background:var(--surface-2);
     display:flex;align-items:center;justify-content:center;
@@ -297,6 +331,7 @@
       <div class="stat"><div class="n" id="statTotal">0</div><div class="l">itens</div></div>
       <div class="stat"><div class="n" id="statValue">R$ 0</div><div class="l">valor estimado</div></div>
       <div class="stat warn"><div class="n" id="statIncomplete">0</div><div class="l">sem foto/valor</div></div>
+      <button class="btn" id="statsCatBtn" style="align-self:center;">Por categoria</button>
     </div>
   </div>
 
@@ -328,6 +363,17 @@
     <button class="btn" id="bulkCatBtn">Mudar categoria</button>
     <button class="btn danger" id="bulkDeleteBtn">Excluir selecionados</button>
     <button class="btn" id="bulkCancelBtn">Cancelar</button>
+  </div>
+
+  <div class="view-row">
+    <div class="view-toggle" id="viewToggle">
+      <button class="vt-btn active" data-view="collection">Coleção</button>
+      <button class="vt-btn" data-view="wishlist">Wishlist</button>
+    </div>
+    <div class="view-toggle" id="displayToggle">
+      <button class="vt-btn active" data-display="grid">Grade</button>
+      <button class="vt-btn" data-display="list">Lista</button>
+    </div>
   </div>
 
   <div class="chips" id="chips"></div>
@@ -438,6 +484,18 @@
   </div>
 </div>
 
+<div class="overlay" id="statsOverlay">
+  <div class="modal">
+    <h2>Valor por categoria</h2>
+    <div id="statsList" class="cat-list"></div>
+    <div class="modal-actions">
+      <div class="right">
+        <button class="btn" id="closeStatsBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -445,6 +503,7 @@ var items = [];
 let activeCat = "Todos";
 let query = "";
 let currentPhotoData = null;
+let formSnapshot = null;
 var CATS = ["Funko Pop","Réplica","Livro","Jogo","Carrinho","Boneco / Figure","Outro"];
 
 
@@ -480,9 +539,10 @@ function renderChips(){
 }
 
 function renderStats(){
-  const total = items.length;
-  const value = items.filter(i=>!i.wish).reduce((s,i)=>s+(Number(i.value)||0),0);
-  const incomplete = items.filter(i=> !i.wish && (!i.photo || !i.value)).length;
+  const collectionItems = items.filter(i=>!i.wish);
+  const total = viewMode === 'wishlist' ? items.filter(i=>i.wish).length : collectionItems.length;
+  const value = collectionItems.reduce((s,i)=>s+(Number(i.value)||0),0);
+  const incomplete = collectionItems.filter(i=> !i.photo || !i.value).length;
   document.getElementById('statTotal').textContent = total;
   document.getElementById('statValue').textContent = money(value);
   document.getElementById('statIncomplete').textContent = incomplete;
@@ -502,6 +562,31 @@ function renderGrid(){
   }
   if(filtered.length === 0){
     wrap.innerHTML = `<div class="empty"><h3>Nada encontrado</h3><p>Tente outro termo de busca ou categoria.</p></div>`;
+    return;
+  }
+
+  if(displayMode === 'list'){
+    wrap.innerHTML = filtered.map(i=>{
+      const bg = i.photo ? `background-image:url(${i.photo})` : '';
+      const thumbContent = i.photo ? '' : '—';
+      const isSelected = selectedIds.has(String(i.id));
+      return `<div class="list-row ${isSelected ? 'selected' : ''}" data-id="${i.id}">
+        ${selectionMode ? `<div class="list-check">${isSelected ? '✓' : ''}</div>` : ''}
+        <div class="list-thumb" style="${bg}">${thumbContent}</div>
+        <div class="list-body">
+          <span class="list-name">${i.name} ${i.wish ? '★' : ''}</span>
+          <span class="list-cat">${i.cat}</span>
+          <span class="list-value">${i.wish ? 'wishlist' : money(i.value)}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    document.querySelectorAll('.list-row').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        if(selectionMode){ toggleSelect(el.dataset.id); }
+        else { openModal(el.dataset.id); }
+      });
+    });
     return;
   }
 
@@ -543,9 +628,12 @@ function toggleSelect(id){
 }
 
 let sortBy = "added-desc";
+let viewMode = "collection"; // 'collection' ou 'wishlist'
+let displayMode = "grid"; // 'grid' ou 'list'
 
 function getFilteredItems(){
   const filtered = items.filter(i=>
+    (viewMode === 'wishlist' ? !!i.wish : !i.wish) &&
     (activeCat==="Todos" || i.cat===activeCat) &&
     i.name.toLowerCase().includes(query.toLowerCase())
   );
@@ -578,6 +666,62 @@ function getFilteredItems(){
 document.getElementById('sortSelect').addEventListener('change', (e)=>{
   sortBy = e.target.value;
   render();
+});
+
+document.querySelectorAll('#viewToggle .vt-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    viewMode = btn.dataset.view;
+    document.querySelectorAll('#viewToggle .vt-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    activeCat = "Todos";
+    selectionMode = false;
+    selectedIds.clear();
+    document.getElementById('selectModeBtn').textContent = 'Selecionar';
+    updateBulkBar();
+    render();
+  });
+});
+
+document.querySelectorAll('#displayToggle .vt-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    displayMode = btn.dataset.display;
+    document.querySelectorAll('#displayToggle .vt-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    render();
+  });
+});
+
+function renderStatsModal(){
+  const collectionItems = items.filter(i=>!i.wish);
+  const list = document.getElementById('statsList');
+  const rows = CATS.map(cat=>{
+    const catItems = collectionItems.filter(i=>i.cat===cat);
+    const value = catItems.reduce((s,i)=>s+(Number(i.value)||0),0);
+    return { cat, count: catItems.length, value };
+  }).filter(r=>r.count>0).sort((a,b)=>b.value-a.value);
+
+  if(rows.length===0){
+    list.innerHTML = `<p style="color:var(--text-faint);font-size:13px;">Nenhum item na coleção ainda.</p>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(r=>`
+    <div class="cat-row">
+      <span>${r.cat} <span class="cat-count">${r.count} item${r.count===1?'':'s'}</span></span>
+      <span style="font-family:var(--font-mono);color:var(--cyan);">${money(r.value)}</span>
+    </div>
+  `).join('');
+}
+
+document.getElementById('statsCatBtn').addEventListener('click', ()=>{
+  renderStatsModal();
+  document.getElementById('statsOverlay').classList.add('show');
+});
+
+document.getElementById('closeStatsBtn').addEventListener('click', ()=>{
+  document.getElementById('statsOverlay').classList.remove('show');
+});
+
+document.getElementById('statsOverlay').addEventListener('click', (e)=>{
+  if(e.target.id==='statsOverlay') document.getElementById('statsOverlay').classList.remove('show');
 });
 
 function updateBulkBar(){
@@ -880,7 +1024,7 @@ function openModal(id){
   document.getElementById('fPlace').value = item ? item.place : '';
   document.getElementById('fSerial').value = item ? item.serial : '';
   document.getElementById('fReceipt').checked = item ? !!item.receipt : false;
-  document.getElementById('fWish').checked = item ? !!item.wish : false;
+  document.getElementById('fWish').checked = item ? !!item.wish : (viewMode === 'wishlist');
   document.getElementById('fNotes').value = item ? item.notes : '';
 
   currentPhotoData = item ? item.photo : null;
@@ -890,16 +1034,46 @@ function openModal(id){
   else { prev.style.display = 'none'; prev.src=''; removeBtn.style.display = 'none'; }
 
   document.getElementById('deleteBtn').style.display = item ? 'inline-block' : 'none';
+
+  formSnapshot = getFormSnapshot();
+}
+
+function getFormSnapshot(){
+  return JSON.stringify({
+    name: document.getElementById('fName').value,
+    cat: document.getElementById('fCat').value,
+    cond: document.getElementById('fCond').value,
+    value: document.getElementById('fValue').value,
+    date: document.getElementById('fDate').value,
+    place: document.getElementById('fPlace').value,
+    serial: document.getElementById('fSerial').value,
+    receipt: document.getElementById('fReceipt').checked,
+    wish: document.getElementById('fWish').checked,
+    notes: document.getElementById('fNotes').value,
+    photo: currentPhotoData
+  });
+}
+
+function hasUnsavedChanges(){
+  return formSnapshot !== null && getFormSnapshot() !== formSnapshot;
 }
 
 function closeModal(){
   document.getElementById('overlay').classList.remove('show');
   currentPhotoData = null;
+  formSnapshot = null;
+}
+
+function tryCloseModal(){
+  if(hasUnsavedChanges()){
+    if(!confirm("Você tem alterações não salvas. Descartar e fechar?")) return;
+  }
+  closeModal();
 }
 
 document.getElementById('addBtn').addEventListener('click', ()=> openModal(null));
-document.getElementById('cancelBtn').addEventListener('click', closeModal);
-document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeModal(); });
+document.getElementById('cancelBtn').addEventListener('click', tryCloseModal);
+document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') tryCloseModal(); });
 
 document.getElementById('saveBtn').addEventListener('click', async ()=>{
   const name = document.getElementById('fName').value.trim();
