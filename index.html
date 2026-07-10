@@ -75,6 +75,20 @@
       border-radius:10px;padding:12px;
     }
     .toolbar-more .btn, .toolbar-more select{width:100%;text-align:left;}
+
+    h1{font-size:26px;}
+    .sub{display:none;}
+    .top{margin-bottom:6px;}
+    .stats{gap:6px;}
+    .stat{padding:8px 12px;min-width:0;flex:1;}
+    .stat .n{font-size:18px;}
+    .stat .l{font-size:9.5px;}
+    .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;margin-bottom:14px;}
+    .chips::-webkit-scrollbar{display:none;}
+    .chip{flex-shrink:0;}
+    .view-row{gap:8px;}
+    .view-toggle{flex:1;}
+    .vt-btn{flex:1;padding:7px 8px;font-size:11.5px;}
   }
   input, select, textarea{
     background:var(--surface-2);
@@ -345,7 +359,6 @@
       <div class="stat"><div class="n" id="statTotal">0</div><div class="l">itens</div></div>
       <div class="stat"><div class="n" id="statValue">R$ 0</div><div class="l">valor estimado</div></div>
       <div class="stat warn"><div class="n" id="statIncomplete">0</div><div class="l">sem foto/valor</div></div>
-      <button class="btn" id="statsCatBtn" style="align-self:center;">Por categoria</button>
     </div>
   </div>
 
@@ -358,6 +371,7 @@
   <div class="toolbar-more" id="toolbarMore">
     <button class="btn" id="selectModeBtn">Selecionar</button>
     <button class="btn" id="manageCatBtn">Categorias</button>
+    <button class="btn" id="statsCatBtn">Valor por categoria</button>
     <select id="sortSelect">
       <option value="name-asc">Nome (A-Z)</option>
       <option value="name-desc">Nome (Z-A)</option>
